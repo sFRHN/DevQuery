@@ -122,7 +122,7 @@ function App() {
 							{forms[response.id] ? "Hide" : "Reply"}
 						</button>
 						{forms[response.id] && (
-							<div className="responseForm">
+							<div className="response-form">
 								<textarea
 									value={responses[response.id]}
 									onChange={(e) =>
@@ -149,6 +149,55 @@ function App() {
 	const toggleForms = (parentID) => {
 		setForms({ ...forms, [parentID]: !forms[parentID] });
 	};
+
+	return (
+		<div className="App">
+			<h1>Programming Channels</h1>
+			<div className="create-post">
+				<input
+					type="text"
+					placeholder="Enter a title"
+					value={postTitle}
+					onChange={(e) => setPostTitle[e.target.value]}
+				></input>
+				<input
+					type="text"
+					placeholder="Enter the data"
+					value={postData}
+					onChange={(e) => setPostData[e.target.value]}
+				></input>
+				<button onClick={() => createPost()}>Submit Post</button>
+			</div>
+			<div key={post.id} className="Post-Container">
+				{posts.map((post) => (
+					<div>
+						<h2>post.title</h2>
+						<p>post.data</p>
+						<p>post.timestamp</p>
+						<button onClick={() => toggleForms(post.id)}>
+							{forms[post.id] ? "Hide" : "Reply"}
+						</button>
+						{forms[post.id] && (
+							<div className="response-form">
+								<textarea
+									value={responses[post.id]}
+									onChange={(e) => {
+										setResponses[
+											{
+												...responses,
+												[post.id]: e.target.value,
+											}
+										];
+									}}
+								></textarea>
+							</div>
+						)}
+						{renderResponses(post.id)}
+					</div>
+				))}
+			</div>
+		</div>
+	);
 }
 
 export default App;
