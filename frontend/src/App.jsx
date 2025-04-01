@@ -188,6 +188,9 @@ function App() {
 										];
 									}}
 								></textarea>
+								<button onClick={() => createResponse(post.id)}>
+									Submit
+								</button>
 							</div>
 						)}
 						{renderResponses(post.id)}
