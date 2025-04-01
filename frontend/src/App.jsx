@@ -23,9 +23,9 @@ function App() {
 	// Load posts on initial render and every 1 second
 	useEffect(() => {
 		loadPosts();
-		const intervalID = setInterval(loadPosts, 1000);
-		return clearInterval(intervalID);
-	});
+		const intervalID = setInterval(loadPosts, 5000);
+		return () => clearInterval(intervalID);
+	}, []);
 
 	// Function to load all posts
 	const loadPosts = () => {
@@ -61,7 +61,7 @@ function App() {
 			},
 			body: JSON.stringify({ topic: postTitle, data: postData }),
 		})
-			.then((response) => response.json)
+			.then((response) => response.json())
 			.then((data) => {
 				if (data.success) {
 					loadPosts();
@@ -88,7 +88,7 @@ function App() {
 				data: responses[parentID],
 			}),
 		})
-			.then((response) => response.json)
+			.then((response) => response.json())
 			.then((data) => {
 				if (data.success) {
 					setResponses({ ...responses, [parentID]: "" });
@@ -114,8 +114,8 @@ function App() {
 			>
 				{responsesByParent[parentID].map((response) => (
 					<div key={response.id} className="response">
-						<p>response.data</p>
-						<p>response.timestamp</p>
+						<p>{response.data}</p>
+						<p>{response.timestamp}</p>
 						<button onClick={() => toggleForms(response.id)}>
 							{forms[response.id] ? "Hide" : "Reply"}
 						</button>
@@ -131,7 +131,9 @@ function App() {
 									}
 									placeholder="Enter a reply!"
 								></textarea>
-								<button onClick={createResponse(response.id)}>
+								<button
+									onClick={() => createResponse(response.id)}
+								>
 									Submit
 								</button>
 							</div>
@@ -180,12 +182,10 @@ function App() {
 								<textarea
 									value={responses[post.id]}
 									onChange={(e) => {
-										setResponses[
-											{
-												...responses,
-												[post.id]: e.target.value,
-											}
-										];
+										setResponses({
+											...responses,
+											[post.id]: e.target.value,
+										});
 									}}
 								></textarea>
 								<button onClick={() => createResponse(post.id)}>
