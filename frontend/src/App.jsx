@@ -30,7 +30,7 @@ function App() {
 	// Function to load all posts
 	const loadPosts = () => {
 		fetch("/alldata")
-			.then((response) => response.json)
+			.then((response) => response.json())
 			.then((data) => {
 				// Save all posts
 				setPosts(data.posts);
@@ -39,7 +39,7 @@ function App() {
 				const responsesByParent = {};
 				data.responses.forEach((response) => {
 					if (!responsesByParent[response.parentID]) {
-						responsesByParent[parentID] = [];
+						responsesByParent[response.parentID] = [];
 					}
 					responsesByParent[response.parentID].push(response);
 				});
@@ -92,7 +92,7 @@ function App() {
 			.then((data) => {
 				if (data.success) {
 					setResponses({ ...responses, [parentID]: "" });
-					toggleForm(parentID);
+					toggleForms(parentID);
 					loadPosts();
 				}
 			})
@@ -103,7 +103,7 @@ function App() {
 
 	// Function to render the nested responses of a post
 	const renderResponses = (parentID, depth = 0) => {
-		if (!responses[parentID]) {
+		if (!responsesByParent[parentID]) {
 			return;
 		}
 
@@ -156,22 +156,22 @@ function App() {
 					type="text"
 					placeholder="Enter a title"
 					value={postTitle}
-					onChange={(e) => setPostTitle[e.target.value]}
+					onChange={(e) => setPostTitle(e.target.value)}
 				></input>
 				<input
 					type="text"
 					placeholder="Enter the data"
 					value={postData}
-					onChange={(e) => setPostData[e.target.value]}
+					onChange={(e) => setPostData(e.target.value)}
 				></input>
 				<button onClick={() => createPost()}>Submit Post</button>
 			</div>
-			<div key={post.id} className="Post-Container">
+			<div className="Post-Container">
 				{posts.map((post) => (
-					<div>
-						<h2>post.title</h2>
-						<p>post.data</p>
-						<p>post.timestamp</p>
+					<div key={post.id} className="post">
+						<h2>{post.title}</h2>
+						<p>{post.data}</p>
+						<p>{post.timestamp}</p>
 						<button onClick={() => toggleForms(post.id)}>
 							{forms[post.id] ? "Hide" : "Reply"}
 						</button>
