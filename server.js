@@ -86,7 +86,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
 // Endpoint to add a post
-app.post("/postMessage", async (req, res) => {
+app.post("/postmessage", async (req, res) => {
 	const { topic, data } = req.body;
 
 	if (!topic || !data) {
@@ -112,7 +112,7 @@ app.post("/postMessage", async (req, res) => {
 });
 
 // Endpoint to add a response
-app.post("/postResponse", async (req, res) => {
+app.post("/postresponse", async (req, res) => {
 	const { parentID, data } = req.body;
 
 	if (!parentID || !data) {
