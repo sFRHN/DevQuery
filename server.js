@@ -83,7 +83,7 @@ const db = couch.use(dbName);
 app.use(express.json());
 
 // Serve React Frontend
-app.use(express.static(path.join(__dirname, "frontend/build")));
+app.use(express.static(path.join(__dirname, "frontend/dist")));
 
 // Endpoint to add a post
 app.post("/postMessage", async (req, res) => {
