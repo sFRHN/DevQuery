@@ -1,0 +1,46 @@
+services:
+    couchdb:
+        image: couchdb:3.3.2
+        ports:
+            - "5984:5984"
+        environment:
+            - COUCHDB_USER=admin
+            - COUCHDB_PASSWORD=password
+        volumes:
+            - couchdb_data:/opt/couchdb/alldata
+        restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:5984"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+    db-init:
+        image: curlimages/curl:8.2.1
+        command: >
+            sh -c "
+              echo 'Waiting for CouchDB to start...' &&
+              sleep 10 &&
+              echo 'Creating system databases...' &&
+              curl -X PUT http://admin:password@couchdb:5984/_users &&
+              curl -X PUT http://admin:password@couchdb:5984/_replicator &&
+              curl -X PUT http://admin:password@couchdb:5984/_global_changes &&
+              echo 'Creating application database...' &&
+              curl -X PUT http://admin:password@couchdb:5984/postsdb &&
+              echo 'All databases created successfully!'
+            "
+        depends_on:
+            - couchdb
+
+    app:
+        build: .
+        ports:
+            - "3000:3000"
+        environment:
+            - COUCHDB_URL=http://admin:password@couchdb:5984
+        depends_on:
+            - couchdb
+            - db-init
+
+volumes:
+    couchdb_data:
