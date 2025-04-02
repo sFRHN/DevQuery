@@ -1,12 +1,7 @@
-import PostList from "./Components/Posts/PostList";
 import "./App.css";
 
 function App() {
-	return (
-		<div className="App">
-			<PostList />
-		</div>
-	);
+	return <div className="App"></div>;
 }
 
 export default App;
