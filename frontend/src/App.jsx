@@ -73,8 +73,8 @@ function App() {
 	};
 
 	// Function to create a response
-	const createResponse = (parentID) => {
-		if (!responses[parentID]) {
+	const createResponse = (itemID) => {
+		if (!responses[itemID]) {
 			return;
 		}
 
@@ -84,15 +84,15 @@ function App() {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				parentID: parentID,
-				data: responses[parentID],
+				parentID: itemID,
+				data: responses[itemID],
 			}),
 		})
 			.then((response) => response.json())
 			.then((data) => {
 				if (data.success) {
-					setResponses({ ...responses, [parentID]: "" });
-					toggleForms(parentID);
+					setResponses({ ...responses, [itemID]: "" });
+					toggleForms(itemID);
 					loadPosts();
 				}
 			})
@@ -102,8 +102,8 @@ function App() {
 	};
 
 	// Function to render the nested responses of a post
-	const renderResponses = (parentID, depth = 0) => {
-		if (!responsesByParent[parentID]) {
+	const renderResponses = (itemID, depth = 0) => {
+		if (!responsesByParent[itemID]) {
 			return;
 		}
 
@@ -112,7 +112,7 @@ function App() {
 				className="responses"
 				style={{ marginLeft: `${depth * 20}px` }}
 			>
-				{responsesByParent[parentID].map((response) => (
+				{responsesByParent[itemID].map((response) => (
 					<div key={response.id} className="response">
 						<p>{response.data}</p>
 						<p>{response.timestamp}</p>
@@ -146,8 +146,8 @@ function App() {
 	};
 
 	// Function to toggle the visibility of response forms
-	const toggleForms = (parentID) => {
-		setForms({ ...forms, [parentID]: !forms[parentID] });
+	const toggleForms = (itemID) => {
+		setForms({ ...forms, [itemID]: !forms[itemID] });
 	};
 
 	return (
