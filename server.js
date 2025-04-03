@@ -34,25 +34,14 @@ const dbName = "postsdb";
 					posts: {
 						map: function (doc) {
 							if (doc.type === "post") {
-								emit([doc.channelID, doc._id], {
-									topic: doc.topic,
-									channelID: doc.channelID,
-									data: doc.data,
-									timestamp: doc.timestamp,
-									hasImage: !!doc._attachments,
-								});
+								emit([doc.channelID, doc._id], doc);
 							}
 						}.toString(),
 					},
 					responses_by_parent: {
 						map: function (doc) {
 							if (doc.type === "response") {
-								emit(doc.parentID, {
-									parentID: doc.parentID,
-									data: doc.data,
-									timestamp: doc.timestamp,
-									hasImage: !!doc._attachments,
-								});
+								emit(doc.parentID, doc);
 							}
 						}.toString(),
 					},
@@ -148,22 +137,19 @@ app.post("/postmessage", upload.single("image"), async (req, res) => {
 			topic: topic,
 			data: data,
 			channelID: channelID,
+			image: null,
 			timestamp: new Date().toLocaleString(),
 		};
 
-		const response = await db.insert(newPost);
-
-		// Add images as attachments
 		if (req.file) {
-			await db.attachment.insert(
-				response.id,
-				"image",
-				req.file.buffer,
-				req.file.mimetype,
-				{ rev: response.rev }
-			);
+			newPost.image = {
+				originalname: req.file.originalname,
+				mimetype: req.file.mimetype,
+				buffer: req.file.buffer.toString("base64"),
+			};
 		}
 
+		const response = await db.insert(newPost);
 		res.status(200).json({ success: true, id: response.id });
 	} catch (err) {
 		console.error("Error creating post:", err);
@@ -195,22 +181,19 @@ app.post("/postresponse", upload.single("image"), async (req, res) => {
 			type: "response",
 			parentID: parentID,
 			data: data,
+			image: null,
 			timestamp: new Date().toLocaleString(),
 		};
 
-		const response = await db.insert(newResponse);
-
-		// Add images as attachments
 		if (req.file) {
-			await db.attachment.insert(
-				response.id,
-				"image",
-				req.file.buffer,
-				req.file.mimetype,
-				{ rev: response.rev }
-			);
+			newResponse.image = {
+				originalname: req.file.originalname,
+				mimetype: req.file.mimetype,
+				buffer: req.file.buffer.toString("base64"),
+			};
 		}
 
+		const response = await db.insert(newResponse);
 		res.status(200).json({ success: true, responseID: response.id });
 	} catch (err) {
 		console.error("Error creating response:", err);
@@ -292,6 +275,9 @@ app.get("/channel/:channelID", async (req, res) => {
 					data: post.data,
 					timestamp: post.timestamp,
 					channelID: post.channelID,
+					hasImage: post.image !== null,
+					imageType: post.image?.mimetype || null,
+					imageName: post.image?.originalname || null,
 				};
 			})
 			.filter((post) => post.channelID === channelID);
@@ -308,6 +294,9 @@ app.get("/channel/:channelID", async (req, res) => {
 				parentID: response.parentID,
 				data: response.data,
 				timestamp: response.timestamp,
+				hasImage: response.image !== null,
+				imageType: response.image?.mimetype || null,
+				imageName: response.image?.originalname || null,
 			};
 		});
 
@@ -315,6 +304,43 @@ app.get("/channel/:channelID", async (req, res) => {
 	} catch (err) {
 		console.log("Error retreiving channel info", err);
 		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Endpoint to serve files
+app.get("/image/:id", async (req, res) => {
+	try {
+		const { id } = req.params;
+		const doc = await db.get(id);
+
+		if (!doc.image) {
+			return res
+				.status(404)
+				.json({ success: false, error: "No file found" });
+		}
+
+		res.setHeader("Content-Type", doc.image.mimetype);
+		res.setHeader(
+			"Content-Disposition",
+			`inline; filename="${doc.image.originalname}"`
+		);
+
+		try {
+			const image = Buffer.from(doc.image.buffer, "base64");
+			res.send(image);
+		} catch (error) {
+			console.error("Buffer error:", error);
+			res.status(500).json({
+				success: false,
+				error: "Conversion error",
+			});
+		}
+	} catch (err) {
+		console.error("File not found", err);
+		res.status(500).json({
+			success: false,
+			error: "Database Error",
+		});
 	}
 });
 
