@@ -48,7 +48,7 @@ const dbName = "postsdb";
 					channels: {
 						map: function (doc) {
 							if (doc.type === "channel") {
-								emit(doc.channelID, doc);
+								emit(doc._id, doc);
 							}
 						}.toString(),
 					},
@@ -243,7 +243,7 @@ app.get("/channel/:channelID", async (req, res) => {
 
 	try {
 		const postsResult = await db.view("app", "posts");
-		const posts = postsResult
+		const posts = postsResult.rows
 			.map((row) => {
 				const post = row.value;
 				return {
@@ -254,11 +254,24 @@ app.get("/channel/:channelID", async (req, res) => {
 					channelID: post.channelID,
 				};
 			})
-			.filter((post) => post.id === channelID);
+			.filter((post) => post.channelID === channelID);
 
-		const channel = await db.get(req.params.id);
+		const channel = await db.get(channelID);
+		const channelName = channel.name;
 
-		res.status(200).json({ posts, channel });
+		// Get all responses
+		const responsesResult = await db.view("app", "responses_by_parent");
+		const responses = responsesResult.rows.map((row) => {
+			const response = row.value;
+			return {
+				id: row.id,
+				parentID: response.parentID,
+				data: response.data,
+				timestamp: response.timestamp,
+			};
+		});
+
+		res.status(200).json({ posts, responses, channelName });
 	} catch (err) {
 		console.log("Error retreiving channel info", err);
 		res.status(500).json({ success: false, error: "Database error" });
