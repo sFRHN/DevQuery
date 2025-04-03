@@ -224,8 +224,43 @@ app.get("/allchannels", async (req, res) => {
 				timestamp: channel.timestamp,
 			};
 		});
+		res.status(200).json(channels);
 	} catch (err) {
 		console.error("Error retrieving channels:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Endpoint to retrieve channel data
+app.get("/channel/:channelID", async (req, res) => {
+	const { channelID } = req.params;
+
+	if (!channelID) {
+		return res
+			.status(400)
+			.json({ success: false, error: "Missing channelID" });
+	}
+
+	try {
+		const postsResult = await db.view("app", "posts");
+		const posts = postsResult
+			.map((row) => {
+				const post = row.value;
+				return {
+					id: row.id,
+					topic: post.topic,
+					data: post.data,
+					timestamp: post.timestamp,
+					channelID: post.channelID,
+				};
+			})
+			.filter((post) => post.id === channelID);
+
+		const channel = await db.get(req.params.id);
+
+		res.status(200).json({ posts, channel });
+	} catch (err) {
+		console.log("Error retreiving channel info", err);
 		res.status(500).json({ success: false, error: "Database error" });
 	}
 });
