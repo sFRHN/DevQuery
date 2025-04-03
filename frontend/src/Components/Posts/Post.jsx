@@ -14,6 +14,17 @@ export default function Post({ post, responsesByParent, onResponseCreated }) {
 			<h2>{post.topic}</h2>
 			<p>{post.data}</p>
 			<p>{post.timestamp}</p>
+
+			{post.hasImage && (
+				<div className="post-image">
+					<img
+						src={`/image/${post.id}`}
+						alt="Post Attachment"
+						style={{ width: "200px", height: "200px" }}
+					/>
+				</div>
+			)}
+
 			<button onClick={toggleForm}>{showForm ? "Hide" : "Reply"}</button>
 
 			{showForm && (

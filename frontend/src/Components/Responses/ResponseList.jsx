@@ -27,6 +27,16 @@ export default function ResponseList({
 					<p>{response.data}</p>
 					<p>{response.timestamp}</p>
 
+					{response.hasImage && (
+						<div className="response-image">
+							<img
+								src={`/image/${response.id}`}
+								alt="Response Attachment"
+								style={{ width: "200px", height: "200px" }}
+							/>
+						</div>
+					)}
+
 					<button onClick={() => toggleForm(response.id)}>
 						{visibleForms[response.id] ? "Hide" : "Reply"}
 					</button>
