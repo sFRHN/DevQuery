@@ -163,7 +163,8 @@ app.post("/postmessage", upload.single("image"), async (req, res) => {
 				{ rev: response.rev }
 			);
 		}
-		if (req.file) res.status(200).json({ success: true, id: response.id });
+
+		res.status(200).json({ success: true, id: response.id });
 	} catch (err) {
 		console.error("Error creating post:", err);
 		res.status(500).json({ success: false, error: "Database error" });
@@ -197,6 +198,8 @@ app.post("/postresponse", upload.single("image"), async (req, res) => {
 			timestamp: new Date().toLocaleString(),
 		};
 
+		const response = await db.insert(newResponse);
+
 		// Add images as attachments
 		if (req.file) {
 			await db.attachment.insert(
@@ -208,7 +211,6 @@ app.post("/postresponse", upload.single("image"), async (req, res) => {
 			);
 		}
 
-		const response = await db.insert(newResponse);
 		res.status(200).json({ success: true, responseID: response.id });
 	} catch (err) {
 		console.error("Error creating response:", err);
