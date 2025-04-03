@@ -34,7 +34,7 @@ const dbName = "postsdb";
 					posts: {
 						map: function (doc) {
 							if (doc.type === "post") {
-								emit(doc._id, doc);
+								emit([doc.channelID, doc._id], doc);
 							}
 						}.toString(),
 					},
@@ -42,6 +42,13 @@ const dbName = "postsdb";
 						map: function (doc) {
 							if (doc.type === "response") {
 								emit(doc.parentID, doc);
+							}
+						}.toString(),
+					},
+					channels: {
+						map: function (doc) {
+							if (doc.type === "channel") {
+								emit(doc.channelID, doc);
 							}
 						}.toString(),
 					},
@@ -85,14 +92,38 @@ app.use(express.json());
 // Serve React Frontend
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
-// Endpoint to add a post
-app.post("/postmessage", async (req, res) => {
-	const { topic, data } = req.body;
+app.post("/createChannel", async (req, res) => {
+	const { channelName } = req.body;
 
-	if (!topic || !data) {
+	if (!channelName) {
 		return res
 			.status(400)
-			.json({ success: false, error: "Missing topic/data" });
+			.json({ success: false, error: "Missing channel name" });
+	}
+
+	try {
+		const newChannel = {
+			type: "channel",
+			name: channelName,
+			timestamp: new Date().toISOString(),
+		};
+
+		const response = await db.insert(newChannel);
+		res.status(200).json({ success: true, id: response.id });
+	} catch (err) {
+		console.error("Error creating posts", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Endpoint to add a post
+app.post("/postmessage", async (req, res) => {
+	const { topic, data, channelID } = req.body;
+
+	if (!topic || !data || !channelID) {
+		return res
+			.status(400)
+			.json({ success: false, error: "Missing topic/data/channel" });
 	}
 
 	try {
@@ -100,6 +131,7 @@ app.post("/postmessage", async (req, res) => {
 			type: "post",
 			topic: topic,
 			data: data,
+			channelID: channelID,
 			timestamp: new Date().toLocaleString(),
 		};
 
@@ -179,6 +211,21 @@ app.get("/alldata", async (req, res) => {
 		res.status(500).json({ success: false, error: "Database error" });
 	}
 });
+
+// Endpoint to retrieve all channels
+app.get("/allchannels", async (req,res) => {
+	try {
+		const channelResult = await db.view("app", "channels");
+		const channels = channelResult.rows.map((row) => {
+			const channel = row.value;
+			return {
+				id: row.id,
+				name: channel.name,
+				timestamp: channel.timestamp,
+			};
+		})
+	}
+})
 
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
