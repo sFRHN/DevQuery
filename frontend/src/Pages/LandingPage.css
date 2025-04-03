@@ -1,0 +1,38 @@
+.container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: auto 1fr;
+	gap: 20px;
+	height: 100vh;
+	padding: 20px;
+}
+
+.title {
+	grid-column: 1 / 3; /* Title spans both columns */
+	text-align: center;
+	font-size: 2em;
+	margin-bottom: 20px;
+}
+
+.info-box {
+	grid-column: 1 / 2; /* Info box in the first column */
+	text-align: center;
+	padding: 20px;
+	background-color: #f0f0f0;
+	border: 1px solid #ccc;
+}
+
+.login-register {
+	grid-column: 2 / 3; /* Login/Register in the second column */
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: stretch;
+}
+
+.login-register > * {
+	margin-bottom: 10px; /* Add spacing between Login and Registration */
+	padding: 20px;
+	border: 1px solid #ddd;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
