@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
 const path = require("path");
-// Import nano for CouchDB connections
 const nano = require("nano");
+const multer = require("multer");
 const PORT = 3000;
 const HOST = `0.0.0.0`;
 
@@ -34,14 +34,25 @@ const dbName = "postsdb";
 					posts: {
 						map: function (doc) {
 							if (doc.type === "post") {
-								emit([doc.channelID, doc._id], doc);
+								emit([doc.channelID, doc._id], {
+									topic: doc.topic,
+									channelID: doc.channelID,
+									data: doc.data,
+									timestamp: doc.timestamp,
+									hasImage: !!doc._attachments,
+								});
 							}
 						}.toString(),
 					},
 					responses_by_parent: {
 						map: function (doc) {
 							if (doc.type === "response") {
-								emit(doc.parentID, doc);
+								emit(doc.parentID, {
+									parentID: doc.parentID,
+									data: doc.data,
+									timestamp: doc.timestamp,
+									hasImage: !!doc._attachments,
+								});
 							}
 						}.toString(),
 					},
@@ -89,6 +100,11 @@ const db = couch.use(dbName);
 
 app.use(express.json());
 
+// Store files in memory temporarily
+const upload = multer({
+	storage: multer.memoryStorage(),
+});
+
 // Serve React Frontend
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
@@ -117,7 +133,7 @@ app.post("/createChannel", async (req, res) => {
 });
 
 // Endpoint to add a post
-app.post("/postmessage", async (req, res) => {
+app.post("/postmessage", upload.single("image"), async (req, res) => {
 	const { topic, data, channelID } = req.body;
 
 	if (!topic || !data || !channelID) {
@@ -136,7 +152,18 @@ app.post("/postmessage", async (req, res) => {
 		};
 
 		const response = await db.insert(newPost);
-		res.status(200).json({ success: true, id: response.id });
+
+		// Add images as attachments
+		if (req.file) {
+			await db.attachment.insert(
+				response.id,
+				"image",
+				req.file.buffer,
+				req.file.mimetype,
+				{ rev: response.rev }
+			);
+		}
+		if (req.file) res.status(200).json({ success: true, id: response.id });
 	} catch (err) {
 		console.error("Error creating post:", err);
 		res.status(500).json({ success: false, error: "Database error" });
@@ -144,7 +171,7 @@ app.post("/postmessage", async (req, res) => {
 });
 
 // Endpoint to add a response
-app.post("/postresponse", async (req, res) => {
+app.post("/postresponse", upload.single("image"), async (req, res) => {
 	const { parentID, data } = req.body;
 
 	if (!parentID || !data) {
@@ -169,6 +196,17 @@ app.post("/postresponse", async (req, res) => {
 			data: data,
 			timestamp: new Date().toLocaleString(),
 		};
+
+		// Add images as attachments
+		if (req.file) {
+			await db.attachment.insert(
+				response.id,
+				"image",
+				req.file.buffer,
+				req.file.mimetype,
+				{ rev: response.rev }
+			);
+		}
 
 		const response = await db.insert(newResponse);
 		res.status(200).json({ success: true, responseID: response.id });
