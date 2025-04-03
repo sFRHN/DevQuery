@@ -30,6 +30,7 @@ export default function Login() {
 					setFormData({ ...formData, password: e.target.value })
 				}
 			/>
+			<button type="submit">Submit</button>
 		</form>
 	);
 }
