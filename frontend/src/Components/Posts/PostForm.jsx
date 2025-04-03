@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function PostForm({ onPostCreated }) {
+export default function PostForm({ onPostCreated, channelID }) {
 	const [postTitle, setPostTitle] = useState("");
 	const [postData, setPostData] = useState("");
 
@@ -13,7 +13,11 @@ export default function PostForm({ onPostCreated }) {
 			const response = await fetch("/postmessage", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ topic: postTitle, data: postData }),
+				body: JSON.stringify({
+					topic: postTitle,
+					data: postData,
+					channelID: channelID,
+				}),
 			});
 
 			const result = await response.json();

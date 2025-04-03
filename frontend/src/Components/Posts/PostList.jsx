@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Post from "./Post";
 import PostForm from "./PostForm";
 
-export default function PostList() {
+export default function PostList({ channelID }) {
 	const [posts, setPosts] = useState([]);
 	const [responsesByParent, setResponsesByParent] = useState({});
 
@@ -11,11 +11,11 @@ export default function PostList() {
 		loadPosts();
 		const intervalID = setInterval(loadPosts, 5000);
 		return () => clearInterval(intervalID);
-	}, []);
+	}, [channelID]);
 
 	const loadPosts = async () => {
 		try {
-			const response = await fetch("/alldata");
+			const response = await fetch(`/channel/${channelID}`);
 			const data = await response.json();
 			setPosts(data.posts);
 
@@ -36,7 +36,7 @@ export default function PostList() {
 	return (
 		<>
 			<h1>Programming Channels</h1>
-			<PostForm onPostCreated={loadPosts} />
+			<PostForm onPostCreated={loadPosts} channelID={channelID} />
 			<div className="Post-Container">
 				{posts.map((post) => (
 					<Post
