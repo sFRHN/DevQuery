@@ -213,7 +213,7 @@ app.get("/alldata", async (req, res) => {
 });
 
 // Endpoint to retrieve all channels
-app.get("/allchannels", async (req,res) => {
+app.get("/allchannels", async (req, res) => {
 	try {
 		const channelResult = await db.view("app", "channels");
 		const channels = channelResult.rows.map((row) => {
@@ -223,9 +223,12 @@ app.get("/allchannels", async (req,res) => {
 				name: channel.name,
 				timestamp: channel.timestamp,
 			};
-		})
+		});
+	} catch (err) {
+		console.error("Error retrieving channels:", err);
+		res.status(500).json({ success: false, error: "Database error" });
 	}
-})
+});
 
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
