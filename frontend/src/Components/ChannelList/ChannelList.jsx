@@ -52,7 +52,12 @@ export default function ChannelList({ selectedChannel, setSelectedChannel }) {
 						value={channelName}
 						onChange={(e) => setChannelName(e.target.value)}
 					/>
-					<button onClick={[createChannel, toggleForm]}>
+					<button
+						onClick={() => {
+							createChannel();
+							toggleForm();
+						}}
+					>
 						Submit
 					</button>
 				</>
