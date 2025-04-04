@@ -1001,7 +1001,11 @@ app.post("/vote", authenticateUser, async (req, res) => {
 
 		await db.insert(item);
 
-		res.status(200).json({ success: true, votes: item.votes });
+		res.json({
+			success: true,
+			upvotes: item.votes.upvotes.length,
+			downvotes: item.votes.downvotes.length,
+		});
 	} catch (err) {
 		console.error("Error voting on item:", err);
 		res.status(500).json({ success: false, error: "Database error" });
