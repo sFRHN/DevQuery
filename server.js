@@ -414,6 +414,128 @@ app.get("/image/:id", async (req, res) => {
 	}
 });
 
+// Registration Endpoint
+app.post("/register", async (req, res) => {
+	const { username, password, displayName } = req.body;
+
+	if (!username || !password || !displayName) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing required fields",
+		});
+	}
+
+	try {
+		// Check if username already exists
+		const result = await db.view("app", "users", { key: username });
+		if (result.rows.length != 0) {
+			return res.status(400).json({
+				success: false,
+				error: "Username already exists",
+			});
+		}
+
+		// Create new user
+		const newUser = {
+			type: "user",
+			username,
+			displayName,
+			password,
+			role: "user",
+			createdAt: new Date().toLocaleString(),
+		};
+
+		const response = await db.insert(newUser);
+		res.status(200).json({
+			success: true,
+			id: response.id,
+		});
+	} catch (err) {
+		console.error("Error registering users:", err);
+		res.status(500).json({
+			success: false,
+			error: "Database error",
+		});
+	}
+});
+
+// Login endpoint
+app.post("/login", async (req, res) => {
+	const { username, password } = req.body;
+
+	if (!username || !password) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing required fields",
+		});
+	}
+
+	try {
+		const results = await db.view("app", "users", { key: username });
+
+		if (results.row.length === 0) {
+			return res.status(400).json({
+				success: false,
+				error: "User does not exist",
+			});
+		}
+
+		const user = results.row[0].value;
+
+		// Check password match
+		if (user.password !== password) {
+			return res.status(400).json({
+				success: false,
+				error: "Invalid Password",
+			});
+		}
+
+		// Create a new session
+		req.session.user = {
+			id: results.rows[0].id,
+			username: user.username,
+			displayName: user.displayName,
+			role: user.role,
+		};
+	} catch (err) {
+		console.error("Error loggin in");
+		res.status(500).json({
+			success: false,
+			error: "Session creation failed",
+		});
+	}
+});
+
+// Logout endpoint
+app.post("/logout", (req, res) => {
+	req.session.destroy((err) => {
+		if (err) {
+			return res
+				.status(500)
+				.json({ success: false, error: "Logout failed" });
+		}
+		res.status(200).json({
+			success: true,
+			message: "Logged out successfully",
+		});
+	});
+});
+
+// Get current user info
+app.get("/user", (req, res) => {
+	if (!req.session.user) {
+		return res.status(401).json({
+			success: false,
+			error: "Not authenticated",
+		});
+	}
+
+	res.status(200).json({
+		success: true,
+		user: req.session.user,
+	});
+});
+
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
 });
