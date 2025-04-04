@@ -52,6 +52,20 @@ const dbName = "postsdb";
 							}
 						}.toString(),
 					},
+					users: {
+						map: function (doc) {
+							if (doc.type === "user") {
+								emit(doc.username, doc);
+							}
+						}.toString(),
+					},
+					users_by_id: {
+						map: function (doc) {
+							if (doc.type === "user") {
+								emit(doc._id, doc);
+							}
+						}.toString(),
+					},
 				},
 			};
 
@@ -68,6 +82,32 @@ const dbName = "postsdb";
 				} else {
 					throw err;
 				}
+			}
+
+			// Create an admin for the system
+			try {
+				const admin = await db.view("app", "users", {
+					key: "admin",
+				});
+
+				if (admin.rows.length === 0) {
+					// Admin doesn't exist, create it
+					const adminUser = {
+						type: "user",
+						username: "admin",
+						password: "adminpass",
+						displayName: "System Administrator",
+						role: "admin",
+						createdAt: new Date().toLocaleString(),
+					};
+
+					await db.insert(adminUser);
+					console.log("Admin user created successfully");
+				} else {
+					console.log("Admin user already exists");
+				}
+			} catch (err) {
+				console.error("Error checking/creating admin user:", err);
 			}
 
 			console.log("CouchDB setup completed successfully!");
@@ -110,7 +150,7 @@ app.post("/createChannel", async (req, res) => {
 		const newChannel = {
 			type: "channel",
 			name: channelName,
-			timestamp: new Date().toISOString(),
+			timestamp: new Date().toLocaleString(),
 		};
 
 		const response = await db.insert(newChannel);
