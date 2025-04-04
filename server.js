@@ -270,6 +270,7 @@ app.post(
 					timeZone: "America/Regina",
 					hour12: true,
 				}),
+				votes: null,
 			};
 
 			if (req.file) {
@@ -326,6 +327,7 @@ app.post(
 					timeZone: "America/Regina",
 					hour12: true,
 				}),
+				votes: null,
 			};
 
 			if (req.file) {
@@ -426,6 +428,7 @@ app.get("/channel/:channelID", authenticateUser, async (req, res) => {
 					hasImage: post.image !== null,
 					imageType: post.image?.mimetype || null,
 					imageName: post.image?.originalname || null,
+					votes: post.votes || { upvotes: [], downvotes: [] },
 				};
 			})
 			.filter((post) => post.channelID === channelID);
@@ -448,6 +451,7 @@ app.get("/channel/:channelID", authenticateUser, async (req, res) => {
 				hasImage: response.image !== null,
 				imageType: response.image?.mimetype || null,
 				imageName: response.image?.originalname || null,
+				votes: response.votes || { upvotes: [], downvotes: [] },
 			};
 		});
 
@@ -961,6 +965,80 @@ app.get("/search", authenticateUser, async (req, res) => {
 		});
 	} catch (err) {
 		console.error("Search error:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// POST endpoint for handling post/reply approvals
+app.post("/vote", authenticateUser, async (req, res) => {
+	const { itemID, voteType } = req.body;
+
+	if (!itemID || !["upvote", "downvote"].includes(voteType)) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing item ID or invalid vote type",
+		});
+	}
+
+	try {
+		const userID = req.session.user.id;
+		const item = await db.get(itemID);
+
+		if (!item.votes) {
+			item.votes = { upvotes: [], downvotes: [] };
+		}
+
+		item.votes.upvotes = item.votes.upvotes.filter((id) => id !== userID);
+		item.votes.downvotes = item.votes.downvotes.filter(
+			(id) => id !== userID
+		);
+
+		if (voteType === "upvote") {
+			item.votes.upvotes.push(userID);
+		} else {
+			item.votes.downvotes.push(userID);
+		}
+
+		await db.insert(item);
+
+		res.status(200).json({ success: true, votes: item.votes });
+	} catch (err) {
+		console.error("Error voting on item:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// POST endpoint for removing a vote
+app.post("/unvote", authenticateUser, async (req, res) => {
+	const { itemID } = req.body;
+
+	if (!itemID) {
+		return res
+			.status(400)
+			.json({ success: false, error: "Missing item ID" });
+	}
+
+	try {
+		const userID = req.session.user.id;
+		const item = await db.get(itemID);
+
+		if (!item.votes) {
+			item.votes = { upvotes: [], downvotes: [] };
+		}
+
+		item.votes.upvotes = item.votes.upvotes.filter((id) => id !== userID);
+		item.votes.downvotes = item.votes.downvotes.filter(
+			(id) => id !== userID
+		);
+
+		await db.insert(item);
+
+		res.status(200).json({
+			success: true,
+			votes: item.votes,
+		});
+	} catch (err) {
+		console.error("Error removing vote:", err);
 		res.status(500).json({ success: false, error: "Database error" });
 	}
 });

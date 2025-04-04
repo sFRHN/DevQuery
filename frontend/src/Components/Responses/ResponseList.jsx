@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ResponseForm from "./ResponseForm";
+import Votes from "../Votes/Votes";
 
 export default function ResponseList({
 	parentID,
@@ -26,6 +27,11 @@ export default function ResponseList({
 				<div key={response.id} className="response">
 					<p>{response.data}</p>
 					<p>{response.timestamp}</p>
+
+					<Votes
+						item={response}
+						onResponseCreated={onResponseCreated}
+					/>
 
 					{response.hasImage && (
 						<div className="response-image">

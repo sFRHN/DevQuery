@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ResponseList from "../Responses/ResponseList";
 import ResponseForm from "../Responses/ResponseForm";
+import Votes from "../Votes/Votes";
 
 export default function Post({ post, responsesByParent, onResponseCreated }) {
 	const [showForm, setShowForm] = useState(false);
@@ -16,6 +17,8 @@ export default function Post({ post, responsesByParent, onResponseCreated }) {
 			<p className="post-timestamp">
 				Posted by {post.creatorDisplayName} • {post.timestamp}
 			</p>
+
+			<Votes item={post} onResponseCreated={onResponseCreated} />
 
 			{post.hasImage && (
 				<div className="post-image">
