@@ -5,12 +5,14 @@ import SearchResults from "../Components/Search/SearchResults";
 import { useState } from "react";
 import "./Homepage.css";
 import { useAuth } from "../Components/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function HomePage() {
 	const [selectedChannel, setSelectedChannel] = useState(null);
 	const { user, logout } = useAuth();
 	const [searchResults, setSearchResults] = useState(null);
 	const [searchType, setSearchType] = useState(null);
+	const navigate = useNavigate();
 
 	const handleSearch = async (query, type) => {
 		try {
@@ -31,6 +33,10 @@ function HomePage() {
 	const clearSearch = () => {
 		setSearchResults(null);
 		setSearchType(null);
+	};
+
+	const goToAdminPanel = () => {
+		navigate("/admin");
 	};
 
 	return (
@@ -56,6 +62,14 @@ function HomePage() {
 						{user?.displayName}
 						{user?.role === "admin" && (
 							<span className="admin-tag">(Admin)</span>
+						)}
+						{user?.role === "admin" && (
+							<button
+								onClick={goToAdminPanel}
+								className="admin-panel-button"
+							>
+								Admin Panel
+							</button>
 						)}
 					</div>
 					<button onClick={logout} className="logout-button">
