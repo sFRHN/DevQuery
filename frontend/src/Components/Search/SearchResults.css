@@ -1,0 +1,40 @@
+.search-results {
+	padding: 15px;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	background-color: white;
+}
+
+.search-result-item {
+	padding: 10px;
+	margin-bottom: 15px;
+	border-bottom: 1px solid #eee;
+}
+
+.post-result h4 {
+	margin-bottom: 5px;
+	color: #333;
+}
+
+.ranking-list {
+	padding-left: 20px;
+}
+
+.ranking-list li {
+	margin-bottom: 5px;
+}
+
+.user-name {
+	font-weight: bold;
+}
+
+.count {
+	margin: 0 5px;
+	font-weight: bold;
+}
+
+.search-results.empty {
+	color: #888;
+	text-align: center;
+	padding: 20px;
+}
