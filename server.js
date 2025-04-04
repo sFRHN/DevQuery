@@ -3,6 +3,7 @@ const app = express();
 const path = require("path");
 const nano = require("nano");
 const multer = require("multer");
+const session = require("express-session");
 const PORT = 3000;
 const HOST = `0.0.0.0`;
 
