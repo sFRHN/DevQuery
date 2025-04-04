@@ -25,6 +25,9 @@ export default function ResponseList({
 		<div className="responses" style={{ marginLeft: `${depth * 20}px` }}>
 			{responsesByParent[parentID].map((response) => (
 				<div key={response.id} className="response">
+					<p>
+						<strong>{response.creatorDisplayName}</strong>
+					</p>
 					<p>{response.data}</p>
 					<p>{response.timestamp}</p>
 
