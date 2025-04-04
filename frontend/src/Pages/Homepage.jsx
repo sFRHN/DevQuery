@@ -34,48 +34,66 @@ function HomePage() {
 	};
 
 	return (
-		<div className="container">
-			<div className="title-bar">
-				<div>Homepage</div>
-				<div className="user-info">
-					{user?.displayName}
-					{user?.role === "admin" && (
-						<span className="admin-tag">(Admin)</span>
+		<div className="homepage-container">
+			<div className="homepage-header">
+				<div className="header-left">
+					<h1>DevQuery</h1>
+					<p className="header-subtitle">Ask. Answer. Learn.</p>
+				</div>
+				<div className="header-center">
+					<SearchBar onSearch={handleSearch} />
+					{searchResults && (
+						<button
+							onClick={clearSearch}
+							className="clear-search-button"
+						>
+							Clear
+						</button>
 					)}
+				</div>
+				<div className="header-right">
+					<div className="user-info">
+						{user?.displayName}
+						{user?.role === "admin" && (
+							<span className="admin-tag">(Admin)</span>
+						)}
+					</div>
 					<button onClick={logout} className="logout-button">
 						Logout
 					</button>
 				</div>
 			</div>
 
-			<div className="search-container">
-				<SearchBar onSearch={handleSearch} />
-				{searchResults && (
-					<button onClick={clearSearch} className="clear-search">
-						Clear Search
-					</button>
-				)}
-			</div>
+			<div className="homepage-content">
+				<div className="channel-sidebar">
+					<ChannelList
+						selectedChannel={selectedChannel}
+						setSelectedChannel={(channelId) => {
+							setSelectedChannel(channelId);
+							setSearchResults(null);
+							setSearchType(null);
+						}}
+					/>
+				</div>
 
-			<div className="channel-sidebar">
-				<ChannelList
-					selectedChannel={selectedChannel}
-					setSelectedChannel={(channelId) => {
-						setSelectedChannel(channelId);
-						setSearchResults(null);
-						setSearchType(null);
-					}}
-				/>
-			</div>
-
-			<div className="content-area">
-				{searchResults ? (
-					<SearchResults results={searchResults} type={searchType} />
-				) : selectedChannel ? (
-					<PostList channelID={selectedChannel} />
-				) : (
-					<h1>Select a channel</h1>
-				)}
+				<div className="content-area">
+					{searchResults ? (
+						<SearchResults
+							results={searchResults}
+							type={searchType}
+						/>
+					) : selectedChannel ? (
+						<PostList channelID={selectedChannel} />
+					) : (
+						<div className="welcome-message">
+							<h2>Welcome to DevQuery</h2>
+							<p>
+								Select a channel to view posts or create your
+								own
+							</p>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);
