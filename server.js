@@ -168,8 +168,9 @@ const upload = multer({
 // Serve React Frontend
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
-app.post("/createChannel", async (req, res) => {
+app.post("/createChannel", authenticateUser, async (req, res) => {
 	const { channelName } = req.body;
+	const user = req.session.user;
 
 	if (!channelName) {
 		return res
@@ -181,6 +182,9 @@ app.post("/createChannel", async (req, res) => {
 		const newChannel = {
 			type: "channel",
 			name: channelName,
+			creatorID: user.id,
+			creatorUsername: user.username,
+			creatorDisplayName: user.displayName,
 			timestamp: new Date().toLocaleString(),
 		};
 
@@ -193,87 +197,105 @@ app.post("/createChannel", async (req, res) => {
 });
 
 // Endpoint to add a post
-app.post("/postmessage", upload.single("image"), async (req, res) => {
-	const { topic, data, channelID } = req.body;
+app.post(
+	"/postmessage",
+	authenticateUser,
+	upload.single("image"),
+	async (req, res) => {
+		const { topic, data, channelID } = req.body;
+		const user = req.session.user;
 
-	if (!topic || !data || !channelID) {
-		return res
-			.status(400)
-			.json({ success: false, error: "Missing topic/data/channel" });
-	}
-
-	try {
-		const newPost = {
-			type: "post",
-			topic: topic,
-			data: data,
-			channelID: channelID,
-			image: null,
-			timestamp: new Date().toLocaleString(),
-		};
-
-		if (req.file) {
-			newPost.image = {
-				originalname: req.file.originalname,
-				mimetype: req.file.mimetype,
-				buffer: req.file.buffer.toString("base64"),
-			};
+		if (!topic || !data || !channelID) {
+			return res
+				.status(400)
+				.json({ success: false, error: "Missing topic/data/channel" });
 		}
 
-		const response = await db.insert(newPost);
-		res.status(200).json({ success: true, id: response.id });
-	} catch (err) {
-		console.error("Error creating post:", err);
-		res.status(500).json({ success: false, error: "Database error" });
+		try {
+			const newPost = {
+				type: "post",
+				topic: topic,
+				data: data,
+				channelID: channelID,
+				creatorID: user.id,
+				creatorUsername: user.username,
+				creatorDisplayName: user.displayName,
+				image: null,
+				timestamp: new Date().toLocaleString(),
+			};
+
+			if (req.file) {
+				newPost.image = {
+					originalname: req.file.originalname,
+					mimetype: req.file.mimetype,
+					buffer: req.file.buffer.toString("base64"),
+				};
+			}
+
+			const response = await db.insert(newPost);
+			res.status(200).json({ success: true, id: response.id });
+		} catch (err) {
+			console.error("Error creating post:", err);
+			res.status(500).json({ success: false, error: "Database error" });
+		}
 	}
-});
+);
 
 // Endpoint to add a response
-app.post("/postresponse", upload.single("image"), async (req, res) => {
-	const { parentID, data } = req.body;
+app.post(
+	"/postresponse",
+	authenticateUser,
+	upload.single("image"),
+	async (req, res) => {
+		const { parentID, data } = req.body;
+		const user = req.session.user;
 
-	if (!parentID || !data) {
-		return res
-			.status(400)
-			.json({ success: false, error: "Missing parentID/data" });
-	}
-
-	try {
-		// Verify the parent (post or response) exists
-		try {
-			await db.get(parentID);
-		} catch (err) {
+		if (!parentID || !data) {
 			return res
-				.status(404)
-				.json({ success: false, error: "Parent not found" });
+				.status(400)
+				.json({ success: false, error: "Missing parentID/data" });
 		}
 
-		const newResponse = {
-			type: "response",
-			parentID: parentID,
-			data: data,
-			image: null,
-			timestamp: new Date().toLocaleString(),
-		};
+		try {
+			// Verify the parent (post or response) exists
+			try {
+				await db.get(parentID);
+			} catch (err) {
+				return res
+					.status(404)
+					.json({ success: false, error: "Parent not found" });
+			}
 
-		if (req.file) {
-			newResponse.image = {
-				originalname: req.file.originalname,
-				mimetype: req.file.mimetype,
-				buffer: req.file.buffer.toString("base64"),
+			const newResponse = {
+				type: "response",
+				parentID: parentID,
+				data: data,
+				creatorID: user.id,
+				creatorUsername: user.username,
+				creatorDisplayName: user.displayName,
+				image: null,
+				timestamp: new Date().toLocaleString(),
 			};
-		}
 
-		const response = await db.insert(newResponse);
-		res.status(200).json({ success: true, responseID: response.id });
-	} catch (err) {
-		console.error("Error creating response:", err);
-		res.status(500).json({ success: false, error: "Database error" });
+			if (req.file) {
+				newResponse.image = {
+					originalname: req.file.originalname,
+					mimetype: req.file.mimetype,
+					buffer: req.file.buffer.toString("base64"),
+				};
+			}
+
+			const response = await db.insert(newResponse);
+			res.status(200).json({ success: true, responseID: response.id });
+		} catch (err) {
+			console.error("Error creating response:", err);
+			res.status(500).json({ success: false, error: "Database error" });
+		}
 	}
-});
+);
 
 // Endpoint to retrieve all data
-app.get("/alldata", async (req, res) => {
+app.get("/alldata", authenticateUser, async (req, res) => {
 	try {
 		// Get all posts
 		const postsResult = await db.view("app", "posts");
@@ -307,7 +329,7 @@ app.get("/alldata", async (req, res) => {
 });
 
 // Endpoint to retrieve all channels
-app.get("/allchannels", async (req, res) => {
+app.get("/allchannels", authenticateUser, async (req, res) => {
 	try {
 		const channelResult = await db.view("app", "channels");
 		const channels = channelResult.rows.map((row) => {
@@ -326,8 +348,9 @@ app.get("/allchannels", async (req, res) => {
 });
 
 // Endpoint to retrieve channel data
-app.get("/channel/:channelID", async (req, res) => {
+app.get("/channel/:channelID", authenticateUser, async (req, res) => {
 	const { channelID } = req.params;
+	const user = req.session.user;
 
 	if (!channelID) {
 		return res
@@ -346,6 +369,9 @@ app.get("/channel/:channelID", async (req, res) => {
 					data: post.data,
 					timestamp: post.timestamp,
 					channelID: post.channelID,
+					creatorID: user.id,
+					creatorUsername: user.username,
+					creatorDisplayName: user.displayName,
 					hasImage: post.image !== null,
 					imageType: post.image?.mimetype || null,
 					imageName: post.image?.originalname || null,
@@ -364,6 +390,9 @@ app.get("/channel/:channelID", async (req, res) => {
 				id: row.id,
 				parentID: response.parentID,
 				data: response.data,
+				creatorID: user.id,
+				creatorUsername: user.username,
+				creatorDisplayName: user.displayName,
 				timestamp: response.timestamp,
 				hasImage: response.image !== null,
 				imageType: response.image?.mimetype || null,
@@ -379,7 +408,7 @@ app.get("/channel/:channelID", async (req, res) => {
 });
 
 // Endpoint to serve files
-app.get("/image/:id", async (req, res) => {
+app.get("/image/:id", authenticateUser, async (req, res) => {
 	try {
 		const { id } = req.params;
 		const doc = await db.get(id);
@@ -429,7 +458,7 @@ app.post("/register", async (req, res) => {
 	try {
 		// Check if username already exists
 		const result = await db.view("app", "users", { key: username });
-		if (result.rows.length != 0) {
+		if (result.rows.length !== 0) {
 			return res.status(400).json({
 				success: false,
 				error: "Username already exists",
