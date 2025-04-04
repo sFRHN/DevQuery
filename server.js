@@ -129,6 +129,36 @@ const db = couch.use(dbName);
 
 app.use(express.json());
 
+// Session Middleware
+app.use(
+	session({
+		secret: "cmpt353-project",
+		resave: false,
+		saveUninitialized: false,
+		cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 24 hours
+	})
+);
+
+// Authentication middleware
+const authenticateUser = (req, res, next) => {
+	if (!req.session.user) {
+		return res
+			.status(401)
+			.json({ success: false, error: "Authentication required" });
+	}
+	next();
+};
+
+// Admin authentication middleware
+const authenticateAdmin = (req, res, next) => {
+	if (!req.session.user || req.session.user.role !== "admin") {
+		return res
+			.status(403)
+			.json({ success: false, error: "Admin access required" });
+	}
+	next();
+};
+
 // Store files in memory temporarily
 const upload = multer({
 	storage: multer.memoryStorage(),
