@@ -566,6 +566,131 @@ app.get("/user", (req, res) => {
 	});
 });
 
+// Admin endpoint - Get all users
+app.get("/admin/users", authenticateAdmin, async (req, res) => {
+	try {
+		const results = await db.view("app", "users_by_id");
+		const users = results.rows.map((row) => {
+			const user = row.value;
+			return {
+				id: row.id,
+				username: user.username,
+				displayName: user.displayName,
+				role: user.role,
+				createdAt: user.createdAt,
+			};
+		});
+
+		res.status(200).json({
+			success: true,
+			users,
+		});
+	} catch (err) {
+		console.error("Error retrieving users:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Admin endpoint - Delete user
+app.delete("/admin/user/:userID", authenticateAdmin, async (req, res) => {
+	const { userID } = req.params;
+
+	if (!userID) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing user ID",
+		});
+	}
+
+	try {
+		const user = await db.get(userID);
+		await db.destroy(user._id, user._rev);
+		res.status(200).json({
+			success: true,
+			message: "User deleted successfully",
+		});
+	} catch (err) {
+		console.error("Error deleting user:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Admin enpoint - Delete a channel
+app.delete("/admin/channel/:channelID", authenticateAdmin, async (req, res) => {
+	const { channelID } = req.params;
+
+	if (!channelID) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing channel ID",
+		});
+	}
+
+	try {
+		const channel = await db.get(channelID);
+		await db.destroy(channel._id, channel._rev);
+		res.status(200).json({
+			success: true,
+			message: "Channel deleted successfully",
+		});
+	} catch (err) {
+		console.error("Error deleting channel:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Admin endpoint - Delete a post
+app.delete("/admin/post/:postID", authenticateAdmin, async (req, res) => {
+	const { postID } = req.params;
+
+	if (!postID) {
+		return res.status(400).json({
+			success: false,
+			error: "Missing post ID",
+		});
+	}
+
+	try {
+		const post = await db.get(postID);
+		await db.destroy(post._id, post._rev);
+		res.status(200).json({
+			success: true,
+			message: "Post deleted successfully",
+		});
+	} catch (err) {
+		console.error("Error deleting post:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
+
+// Admin endpoint - Delete a response
+app.delete(
+	"/admin/response/:responseID",
+	authenticateAdmin,
+	async (req, res) => {
+		const { responseID } = req.params;
+
+		if (!responseID) {
+			return res.status(400).json({
+				success: false,
+				error: "Missing response ID",
+			});
+		}
+
+		try {
+			const response = await db.get(responseID);
+			await db.destroy(response._id, response._rev);
+			res.status(200).json({
+				success: true,
+				message: "Response deleted successfully",
+			});
+		} catch (err) {
+			console.error("Error deleting response:", err);
+			res.status(500).json({ success: false, error: "Database error" });
+		}
+	}
+);
+
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
 });
