@@ -373,7 +373,7 @@ app.get("/channel/:channelID", async (req, res) => {
 
 		res.status(200).json({ posts, responses, channelName });
 	} catch (err) {
-		console.log("Error retreiving channel info", err);
+		console.log("Error retrieving channel info", err);
 		res.status(500).json({ success: false, error: "Database error" });
 	}
 });
@@ -499,7 +499,7 @@ app.post("/login", async (req, res) => {
 			role: user.role,
 		};
 	} catch (err) {
-		console.error("Error loggin in");
+		console.error("Error logging in");
 		res.status(500).json({
 			success: false,
 			error: "Session creation failed",
