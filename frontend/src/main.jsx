@@ -2,17 +2,34 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
-import App from "./App.jsx";
 import Homepage from "./Pages/Homepage.jsx";
 import LandingPage from "./Pages/LandingPage.jsx";
-
-const router = createBrowserRouter([
-	{ path: "/", element: <LandingPage /> },
-	{ path: "/home", element: <Homepage /> },
-]);
+import { AuthProvider } from "./Components/AuthContext.jsx";
+import ProtectedRoute from "./Components/ProtectedRoute.jsx";
 
 createRoot(document.getElementById("root")).render(
 	<StrictMode>
-		<RouterProvider router={router} />
+		<RouterProvider
+			router={createBrowserRouter([
+				{
+					path: "/",
+					element: (
+						<AuthProvider>
+							<LandingPage />
+						</AuthProvider>
+					),
+				},
+				{
+					path: "/home",
+					element: (
+						<AuthProvider>
+							<ProtectedRoute>
+								<Homepage />
+							</ProtectedRoute>
+						</AuthProvider>
+					),
+				},
+			])}
+		/>
 	</StrictMode>
 );
