@@ -12,20 +12,20 @@ export default function Post({ post, responsesByParent, onResponseCreated }) {
 	return (
 		<div className="post">
 			<h2>{post.topic}</h2>
-			<p>{post.data}</p>
-			<p>{post.timestamp}</p>
+			<p className="post-content">{post.data}</p>
+			<p className="post-timestamp">
+				Posted by {post.creatorDisplayName} • {post.timestamp}
+			</p>
 
 			{post.hasImage && (
 				<div className="post-image">
-					<img
-						src={`/image/${post.id}`}
-						alt="Post Attachment"
-						style={{ width: "200px", height: "200px" }}
-					/>
+					<img src={`/image/${post.id}`} alt="Post Attachment" />
 				</div>
 			)}
 
-			<button onClick={toggleForm}>{showForm ? "Hide" : "Reply"}</button>
+			<button onClick={toggleForm}>
+				{showForm ? "Cancel Reply" : "Reply"}
+			</button>
 
 			{showForm && (
 				<ResponseForm
