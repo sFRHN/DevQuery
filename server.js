@@ -67,6 +67,45 @@ const dbName = "postsdb";
 							}
 						}.toString(),
 					},
+					search_content: {
+						map: function (doc) {
+							if (
+								doc.type === "post" ||
+								doc.type === "response"
+							) {
+								var text = "";
+								if (doc.type === "post") {
+									text = doc.topic + " " + doc.data;
+								} else {
+									text = doc.data;
+								}
+								emit(doc._id, {
+									text: text.toLowerCase(),
+									doc: doc,
+								});
+							}
+						}.toString(),
+					},
+					posts_count_by_user: {
+						map: function (doc) {
+							if (doc.type === "post") {
+								emit(doc.creatorUsername, 1);
+							}
+						}.toString(),
+						reduce: function (keys, values) {
+							return sum(values);
+						}.toString(),
+					},
+					responses_count_by_user: {
+						map: function (doc) {
+							if (doc.type === "response") {
+								emit(doc.creatorUsername, 1);
+							}
+						}.toString(),
+						reduce: function (keys, values) {
+							return sum(values);
+						}.toString(),
+					},
 				},
 			};
 
@@ -99,7 +138,10 @@ const dbName = "postsdb";
 						password: "adminpass",
 						displayName: "System Administrator",
 						role: "admin",
-						createdAt: new Date().toLocaleString(),
+						createdAt: new Date().toLocaleString("en-US", {
+							timeZone: "America/Regina",
+							hour12: true,
+						}),
 					};
 
 					await db.insert(adminUser);
@@ -185,7 +227,10 @@ app.post("/createChannel", authenticateUser, async (req, res) => {
 			creatorID: user.id,
 			creatorUsername: user.username,
 			creatorDisplayName: user.displayName,
-			timestamp: new Date().toLocaleString(),
+			timestamp: new Date().toLocaleString("en-US", {
+				timeZone: "America/Regina",
+				hour12: true,
+			}),
 		};
 
 		const response = await db.insert(newChannel);
@@ -221,7 +266,10 @@ app.post(
 				creatorUsername: user.username,
 				creatorDisplayName: user.displayName,
 				image: null,
-				timestamp: new Date().toLocaleString(),
+				timestamp: new Date().toLocaleString("en-US", {
+					timeZone: "America/Regina",
+					hour12: true,
+				}),
 			};
 
 			if (req.file) {
@@ -274,7 +322,10 @@ app.post(
 				creatorUsername: user.username,
 				creatorDisplayName: user.displayName,
 				image: null,
-				timestamp: new Date().toLocaleString(),
+				timestamp: new Date().toLocaleString("en-US", {
+					timeZone: "America/Regina",
+					hour12: true,
+				}),
 			};
 
 			if (req.file) {
@@ -472,7 +523,10 @@ app.post("/register", async (req, res) => {
 			displayName,
 			password,
 			role: "user",
-			createdAt: new Date().toLocaleString(),
+			createdAt: new Date().toLocaleString("en-US", {
+				timeZone: "America/Regina",
+				hour12: true,
+			}),
 		};
 
 		const response = await db.insert(newUser);
@@ -705,6 +759,211 @@ app.delete(
 		}
 	}
 );
+
+// Search endpoint
+app.get("/search", authenticateUser, async (req, res) => {
+	const { query, type } = req.query;
+
+	if (
+		!query &&
+		![
+			"most-posts",
+			"least-posts",
+			"highest-ranking",
+			"lowest-ranking",
+		].includes(type)
+	) {
+		return res
+			.status(400)
+			.json({ success: false, error: "Invalid search parameters" });
+	}
+
+	try {
+		let results = [];
+
+		switch (type) {
+			case "content": {
+				// Search for content containing specific strings
+				const postResults = await db.view("app", "posts");
+				const responseResults = await db.view(
+					"app",
+					"responses_by_parent"
+				);
+
+				// Get channel names for context
+				const channelsResult = await db.view("app", "channels");
+				const channelsMap = {};
+				channelsResult.rows.forEach((row) => {
+					channelsMap[row.id] = row.value.name;
+				});
+
+				// Combine and filter results
+				const allContent = [
+					...postResults.rows.map((row) => {
+						const post = row.value;
+						return {
+							...post,
+							id: row.id,
+							channelName: channelsMap[post.channelID],
+						};
+					}),
+					...responseResults.rows.map((row) => ({
+						...row.value,
+						id: row.id,
+					})),
+				];
+
+				results = allContent.filter((item) => {
+					let content = "";
+					if (item.type === "post") {
+						content = `${item.topic} ${item.data}`.toLowerCase();
+					} else {
+						content = item.data.toLowerCase();
+					}
+					return content.includes(query.toLowerCase());
+				});
+				break;
+			}
+
+			case "user": {
+				// Search for content created by specific user
+				const userResults = await db.view("app", "users", {
+					startkey: query,
+					endkey: query + "\ufff0",
+				});
+
+				if (userResults.rows.length === 0) {
+					return res.status(200).json({ success: true, results: [] });
+				}
+
+				// Get all content and filter by found users
+				const usernames = userResults.rows.map((row) => row.key);
+
+				// Get all posts
+				const postResults = await db.view("app", "posts");
+				const responseResults = await db.view(
+					"app",
+					"responses_by_parent"
+				);
+
+				// Get channel names for context
+				const channelsResult = await db.view("app", "channels");
+				const channelsMap = {};
+				channelsResult.rows.forEach((row) => {
+					channelsMap[row.id] = row.value.name;
+				});
+
+				// Combine and filter by username
+				const allContent = [
+					...postResults.rows.map((row) => {
+						const post = row.value;
+						return {
+							...post,
+							id: row.id,
+							channelName: channelsMap[post.channelID],
+						};
+					}),
+					...responseResults.rows.map((row) => ({
+						...row.value,
+						id: row.id,
+					})),
+				];
+
+				results = allContent.filter((item) =>
+					usernames.includes(item.creatorUsername)
+				);
+				break;
+			}
+
+			case "most-posts":
+			case "least-posts": {
+				// Get users with most or least posts
+				const postCounts = await db.view("app", "posts_count_by_user", {
+					group: true,
+				});
+
+				// Get user details
+				const userDetails = {};
+				const allUsers = await db.view("app", "users_by_id");
+
+				allUsers.rows.forEach((row) => {
+					userDetails[row.value.username] = {
+						id: row.id,
+						displayName: row.value.displayName,
+					};
+				});
+
+				// Format results
+				results = postCounts.rows
+					.map((row) => ({
+						id: userDetails[row.key]?.id || "unknown",
+						username: row.key,
+						displayName:
+							userDetails[row.key]?.displayName || row.key,
+						count: row.value,
+					}))
+					.sort((a, b) =>
+						type === "most-posts"
+							? b.count - a.count
+							: a.count - b.count
+					)
+					.slice(0, 10); // Limit to top 10
+				break;
+			}
+
+			case "highest-ranking":
+			case "lowest-ranking": {
+				// Get users with highest or lowest response counts
+				const responseCounts = await db.view(
+					"app",
+					"responses_count_by_user",
+					{ group: true }
+				);
+
+				// Get user details
+				const userDetails = {};
+				const allUsers = await db.view("app", "users_by_id");
+
+				allUsers.rows.forEach((row) => {
+					userDetails[row.value.username] = {
+						id: row.id,
+						displayName: row.value.displayName,
+					};
+				});
+
+				// Format results
+				results = responseCounts.rows
+					.map((row) => ({
+						id: userDetails[row.key]?.id || "unknown",
+						username: row.key,
+						displayName:
+							userDetails[row.key]?.displayName || row.key,
+						count: row.value,
+					}))
+					.sort((a, b) =>
+						type === "highest-ranking"
+							? b.count - a.count
+							: a.count - b.count
+					)
+					.slice(0, 10); // Limit to top 10
+				break;
+			}
+
+			default:
+				return res
+					.status(400)
+					.json({ success: false, error: "Invalid search type" });
+		}
+
+		res.status(200).json({
+			success: true,
+			results,
+		});
+	} catch (err) {
+		console.error("Search error:", err);
+		res.status(500).json({ success: false, error: "Database error" });
+	}
+});
 
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
