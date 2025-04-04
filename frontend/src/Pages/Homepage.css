@@ -14,7 +14,7 @@
 	padding: 20px;
 }
 
-.title {
+.title-bar {
 	grid-column: 1 / 3; /* Title spans both columns */
 	text-align: center;
 	font-size: 2em;

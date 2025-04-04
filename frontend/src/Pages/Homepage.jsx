@@ -2,13 +2,24 @@ import ChannelList from "../Components/ChannelList/ChannelList";
 import PostList from "../Components/Posts/PostList";
 import { useState } from "react";
 import "./Homepage.css";
+import { useAuth } from "../Components/AuthContext";
 
 function HomePage() {
 	const [selectedChannel, setSelectedChannel] = useState(null);
+	const { user, logout } = useAuth();
 
 	return (
 		<div className="container">
-			<div className="title">Homepage</div>
+			<div className="title-bar">
+				<div>Homepage</div>
+				<div className="user-info">
+					{user.displayName}
+					{user.isAdmin && <span className="admin-tag">(Admin)</span>}
+					<button onClick={logout} className="logout-button">
+						Logout
+					</button>
+				</div>
+			</div>
 			<div className="channel-sidebar">
 				<ChannelList
 					selectedChannel={selectedChannel}
