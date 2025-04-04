@@ -476,9 +476,19 @@ app.post("/register", async (req, res) => {
 		};
 
 		const response = await db.insert(newUser);
+
+		// Create session for the new user (add this!)
+		req.session.user = {
+			id: response.id,
+			username: newUser.username,
+			displayName: newUser.displayName,
+			role: newUser.role,
+		};
+
+		// Return user data in response
 		res.status(200).json({
 			success: true,
-			id: response.id,
+			user: req.session.user,
 		});
 	} catch (err) {
 		console.error("Error registering users:", err);
@@ -503,14 +513,14 @@ app.post("/login", async (req, res) => {
 	try {
 		const results = await db.view("app", "users", { key: username });
 
-		if (results.row.length === 0) {
+		if (results.rows.length === 0) {
 			return res.status(400).json({
 				success: false,
 				error: "User does not exist",
 			});
 		}
 
-		const user = results.row[0].value;
+		const user = results.rows[0].value;
 
 		// Check password match
 		if (user.password !== password) {
@@ -527,6 +537,11 @@ app.post("/login", async (req, res) => {
 			displayName: user.displayName,
 			role: user.role,
 		};
+
+		res.status(200).json({
+			success: true,
+			user: req.session.user,
+		});
 	} catch (err) {
 		console.error("Error logging in");
 		res.status(500).json({
@@ -552,7 +567,7 @@ app.post("/logout", (req, res) => {
 });
 
 // Get current user info
-app.get("/user", (req, res) => {
+app.get("/current-user", (req, res) => {
 	if (!req.session.user) {
 		return res.status(401).json({
 			success: false,
